@@ -47,8 +47,7 @@ Every number in this model is sourced. Key references:
 
 ## Screenshots
 
-*Add screenshots here after deployment*
-
+![SaaS Valuation Model](screenshots/image.png)
 ---
 
 ## Tech Stack
