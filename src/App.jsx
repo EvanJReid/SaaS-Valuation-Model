@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 
 // ─── DESIGN SYSTEM ────────────────────────────────────────────────────────────
 // Aesthetic: Dead-serious analytical instrument. Reuters Eikon × Thoma Bravo CIM.
-// Cream paper, near-black ink, cold steel accent. Every pixel earns its place.
-const C = {
+// Light/Dark themes available. Every pixel earns its place.
+const LIGHT = {
   paper:   "#F5F3EE",
   ink:     "#18160F",
   surface: "#FFFFFF",
@@ -24,6 +24,30 @@ const C = {
   blue:    "#0D2D5E",
   blueLt:  "#E8EEF8",
 };
+
+const DARK = {
+  paper:   "#0D0D0F",
+  ink:     "#E8E6E1",
+  surface: "#18181B",
+  panel:   "#141416",
+  border:  "#2A2A2E",
+  dim:     "#1F1F23",
+  rule:    "#3A3A40",
+  muted:   "#9A9A9A",
+  ghost:   "#6B6B6B",
+  steel:   "#5B9BD5",
+  steelLt: "#1A2533",
+  green:   "#4ADE80",
+  greenLt: "#132A1C",
+  red:     "#F87171",
+  redLt:   "#2A1515",
+  amber:   "#FBBF24",
+  amberLt: "#2A2310",
+  blue:    "#60A5FA",
+  blueLt:  "#152238",
+};
+
+let C = DARK;
 
 const MONO = "'Berkeley Mono','IBM Plex Mono','Courier New',monospace";
 const SANS = "'DM Sans','Helvetica Neue',sans-serif";
@@ -560,7 +584,7 @@ function BridgeChart({ open, newLogo, expansion, contraction, churn, close }) {
 function HCell({ v, isActive, format }) {
   const nv = parseFloat(v);
   const c  = nv >= 10 ? C.green : nv >= 6 ? C.steel : nv >= 4 ? C.amber : C.red;
-  const bg = nv >= 10 ? "#D2EDD8" : nv >= 6 ? "#DAE9F2" : nv >= 4 ? "#FFF0CC" : "#FADFDF";
+  const bg = nv >= 10 ? C.greenLt : nv >= 6 ? C.steelLt : nv >= 4 ? C.amberLt : C.redLt;
   return (
     <td style={{ padding:"5px 9px", textAlign:"center", fontFamily:MONO, fontSize:11.5,
       background: isActive ? C.steel : bg, color: isActive ? "#fff" : c,
@@ -744,6 +768,27 @@ function DiligenceCard({ calcs, inputs }) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState("SUMMARY");
+  const [darkMode, setDarkMode] = useState(true);
+
+  // Update theme
+  C = darkMode ? DARK : LIGHT;
+  useEffect(() => {
+    document.body.style.background = C.paper;
+    // Update scrollbar colors
+    let style = document.getElementById('scrollbar-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'scrollbar-style';
+      document.head.appendChild(style);
+    }
+    style.textContent = `
+      * { scrollbar-color: ${darkMode ? '#3A3A40 #1F1F23' : '#C8C3B4 #EAE7DF'}; }
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: ${darkMode ? '#1F1F23' : '#EAE7DF'} !important; }
+      ::-webkit-scrollbar-thumb { background: ${darkMode ? '#3A3A40' : '#C8C3B4'} !important; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: ${darkMode ? '#6B6B6B' : '#A89F8C'} !important; }
+    `;
+  }, [darkMode]);
 
   // Company profile
   const [companyName, setCompanyName] = useState("Target Company");
@@ -821,7 +866,7 @@ export default function App() {
     <div style={{ background:C.paper, minHeight:"100vh", color:C.ink, fontFamily:SANS }}>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
-      <div style={{ background:C.ink, display:"flex", alignItems:"stretch", padding:"0 24px", gap:0 }}>
+      <div style={{ background:"#18160F", display:"flex", alignItems:"stretch", padding:"0 24px", gap:0 }}>
         {/* Name + subtitle */}
         <div style={{ padding:"14px 24px 14px 0", borderRight:`1px solid rgba(255,255,255,0.12)`, marginRight:24 }}>
           <input value={companyName} onChange={e => setCompanyName(e.target.value)}
@@ -833,17 +878,32 @@ export default function App() {
         </div>
 
         {/* Three headline numbers */}
-        {[
-          { lbl:"BASE CASE EV",   val:$(calcs.baseEV),  sub:`${mult(calcs.baseMult)} ARR`,  c:"#8FD4F0" },
-          { lbl:"BEAR / BULL",    val:`${$(calcs.bearEV,0)} — ${$(calcs.bullEV,0)}`, sub:`${mult(calcs.bearMult,1)} — ${mult(calcs.bullMult,1)} ARR`, c:"rgba(255,255,255,0.7)" },
-          { lbl:"DCF VALUE",      val:$(calcs.dcfEV),   sub:`${wacc}% WACC · ${termGrowthRate}% g`,   c:"rgba(255,255,255,0.7)" },
-        ].map(({lbl,val,sub,c}) => (
-          <div key={lbl} style={{ padding:"10px 24px 10px 0", borderRight:`1px solid rgba(255,255,255,0.1)`, marginRight:24 }}>
-            <div style={{ fontSize:9, letterSpacing:1.4, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", fontFamily:SANS, marginBottom:3 }}>{lbl}</div>
-            <div style={{ fontSize:22, fontWeight:700, fontFamily:MONO, color:c, lineHeight:1 }}>{val}</div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:MONO, marginTop:3 }}>{sub}</div>
+        {/* Base Case EV */}
+        <div style={{ padding:"10px 24px 10px 0", borderRight:`1px solid rgba(255,255,255,0.1)`, marginRight:24 }}>
+          <div style={{ fontSize:9, letterSpacing:1.4, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", fontFamily:SANS, marginBottom:3 }}>BASE CASE EV</div>
+          <div style={{ fontSize:22, fontWeight:700, fontFamily:MONO, color:"#8FD4F0", lineHeight:1 }}>{$(calcs.baseEV)}</div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:MONO, marginTop:3 }}>{mult(calcs.baseMult)} ARR</div>
+        </div>
+        {/* Bear / Bull */}
+        <div style={{ padding:"10px 24px 10px 0", borderRight:`1px solid rgba(255,255,255,0.1)`, marginRight:24 }}>
+          <div style={{ fontSize:9, letterSpacing:1.4, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", fontFamily:SANS, marginBottom:3 }}>BEAR / BULL</div>
+          <div style={{ fontSize:22, fontWeight:700, fontFamily:MONO, lineHeight:1 }}>
+            <span style={{ color:"#F87171" }}>{$(calcs.bearEV,0)}</span>
+            <span style={{ color:"rgba(255,255,255,0.5)" }}> — </span>
+            <span style={{ color:"#4ADE80" }}>{$(calcs.bullEV,0)}</span>
           </div>
-        ))}
+          <div style={{ fontSize:10, fontFamily:MONO, marginTop:3 }}>
+            <span style={{ color:"#F87171", opacity:0.7 }}>{mult(calcs.bearMult,1)}</span>
+            <span style={{ color:"rgba(255,255,255,0.35)" }}> — </span>
+            <span style={{ color:"#4ADE80", opacity:0.7 }}>{mult(calcs.bullMult,1)} ARR</span>
+          </div>
+        </div>
+        {/* DCF Value */}
+        <div style={{ padding:"10px 24px 10px 0", borderRight:`1px solid rgba(255,255,255,0.1)`, marginRight:24 }}>
+          <div style={{ fontSize:9, letterSpacing:1.4, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", fontFamily:SANS, marginBottom:3 }}>DCF VALUE</div>
+          <div style={{ fontSize:22, fontWeight:700, fontFamily:MONO, color:"rgba(255,255,255,0.7)", lineHeight:1 }}>{$(calcs.dcfEV)}</div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:MONO, marginTop:3 }}>{wacc}% WACC · {termGrowthRate}% g</div>
+        </div>
 
         {/* Quality score */}
         <div style={{ padding:"10px 0", marginLeft:"auto", display:"flex", alignItems:"center", gap:20 }}>
@@ -874,8 +934,14 @@ export default function App() {
             letterSpacing:1.3, textTransform:"uppercase", transition:"all 0.12s", marginBottom:-1,
           }}>{t}</button>
         ))}
-        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center" }}>
+        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:16 }}>
           <span style={{ fontSize:9.5, color:C.ghost, fontFamily:SANS }}>Sources: SEG · SaaS Capital · Aventis · Benchmarkit · Windsor Drake · ABF Journal</span>
+          <button onClick={() => setDarkMode(!darkMode)} style={{
+            background: darkMode ? C.dim : C.border, border:"none", borderRadius:4, cursor:"pointer",
+            padding:"5px 10px", display:"flex", alignItems:"center", gap:6, transition:"all 0.15s",
+          }}>
+            <span style={{ fontSize:9.5, fontWeight:600, color:C.muted, fontFamily:SANS }}>{darkMode ? "DARK" : "LIGHT"}</span>
+          </button>
         </div>
       </div>
 
